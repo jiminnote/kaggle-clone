@@ -13,7 +13,7 @@
 |--------|------|
 | Loan Approval Prediction | ✅ 완료 |
 | resgression_of_used_car_prices  | ✅ 완료 |
-| H&M Personalized Fashion Recommendations | ⏳ 진행 예정 |
+| H&M Personalized Fashion Recommendations | ✅ 완료 |
 
 
 ---
@@ -22,6 +22,7 @@
 
 - Python (3.10 이상)
 - Pandas, NumPy
+- cudf
 - Seaborn, Matplotlib
 - Scikit-learn
 
