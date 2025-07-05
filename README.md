@@ -14,6 +14,7 @@
 | Loan Approval Prediction | ✅ 완료 |
 | resgression_of_used_car_prices  | ✅ 완료 |
 | H&M Personalized Fashion Recommendations | ✅ 완료 |
+| Enefit - Predict Energy Behavior of Prosumers | ✅ 완료 |
 
 
 ---
