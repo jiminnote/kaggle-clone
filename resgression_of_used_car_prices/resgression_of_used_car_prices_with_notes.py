@@ -189,6 +189,34 @@ mod2 = ctb.CatBoostRegressor(iterations=475,
 mod1.fit(train_df[features], train_df[target])
 mod2.fit(train_df[features], train_df[target], cat_features=catFeatures)
 
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# 🔹 학습/검증 데이터 분리
+X_train, X_val, y_train, y_val = train_test_split(train_df[features], train_df[target], test_size=0.2, random_state=42)
+
+# 🔹 모델 학습
+mod1.fit(X_train, y_train)
+mod2.fit(X_train, y_train, cat_features=catFeatures)
+
+# 🔹 각 모델 예측
+pred1 = mod1.predict(X_val)
+pred2 = mod2.predict(X_val)
+
+# 🔹 앙상블 예측 
+ensemble_pred = 0.8 * pred1 + 0.2 * pred2
+
+# 🔹 RMSE 계산
+rmse1 = np.sqrt(mean_squared_error(y_val, pred1))
+rmse2 = np.sqrt(mean_squared_error(y_val, pred2))
+rmse_ensemble = np.sqrt(mean_squared_error(y_val, ensemble_pred))
+
+print(f"RandomForest RMSE: {rmse1:.2f}")
+print(f"CatBoost RMSE: {rmse2:.2f}")
+print(f"앙상블 RMSE: {rmse_ensemble:.2f}")
+
+
 ## Part 10: 피처 중요도 시각화
 
 lgb.plot_importance(mod1, importance_type='split', figsize=(10, 6))
