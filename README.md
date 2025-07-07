@@ -15,6 +15,8 @@
 | resgression_of_used_car_prices  | ✅ 완료 |
 | H&M Personalized Fashion Recommendations | ✅ 완료 |
 | Enefit - Predict Energy Behavior of Prosumers | ✅ 완료 |
+| Home_Credit-Credit_Risk_Model_Stability | ⏳ 진행중 |
+| CR - Identifying Age-Related Conditions | ⏳ 진행예정 |
 
 
 ---
