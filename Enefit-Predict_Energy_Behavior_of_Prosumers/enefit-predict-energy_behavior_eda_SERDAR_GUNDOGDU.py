@@ -5,9 +5,6 @@ import seaborn as sns
 import plotly as py
 import plotly.express as px
 
-
-
-
 import plotly.graph_objs as go
 from plotly import tools
 from plotly.subplots import make_subplots
@@ -20,17 +17,23 @@ pd.options.display.float_format = '{:.2f}'.format
 
 df_train = pd.read_csv("/kaggle/input/predict-energy-behavior-of-prosumers/train.csv")
 df_train["datetime"] = pd.to_datetime(df_train["datetime"])
+# 소비 데이터만 필터링
 df_train_consumption = df_train[df_train["is_consumption"]==1]
+# 월/주/일별 소비 데이터 평균 계산
 monthly_consumption = df_train_consumption.groupby(pd.Grouper(key="datetime", freq='M')).mean()
 weekly_consumption = df_train_consumption.groupby(pd.Grouper(key="datetime", freq='W')).mean()
 daily_consumption = df_train_consumption.groupby(pd.Grouper(key="datetime", freq='D')).mean()
 mean_consumption = df_train_consumption.target.mean()
+# 생산 데이터만 필터링
 df_train_production = df_train[df_train["is_consumption"]==0]
+# 월/주/일별 생산 데이터 평균 계산
 monthly_production = df_train_production.groupby(pd.Grouper(key="datetime", freq='M')).mean()
 weekly_production = df_train_production.groupby(pd.Grouper(key="datetime", freq='W')).mean()
 daily_production = df_train_production.groupby(pd.Grouper(key="datetime", freq='D')).mean()
 mean_production = df_train_production.target.mean()
 
+
+# 단일 시계열 데이터를 area chart로 시각화하고 평균선을 함께 표시
 def plot_one(df, mean, color, title, annotation, yaxis_title, y="target", line_shape="linear"):
     fig = px.area(df, x=df.index, 
                   y=y, title=title,
@@ -65,12 +68,16 @@ plot_one(net_consumption, net_consumption.mean(),
          "Average Net Consumption",
          "Net Consumption")
 
+# 범주형 변수 간의 관계를 시각화 (Parallel Categories, 파이차트, 분포도 등)
 parallel_diagram = df_train[['county', 'product_type', 'is_business', 'is_consumption']]
 fig = px.parallel_categories(parallel_diagram, color_continuous_scale=px.colors.sequential.Inferno)
 fig.update_layout(title='Parallel category diagram on Train Data set')
 fig.show()
 
+
+# 두 범주형 변수의 조합 분포를 원형 그래프로 시각화
 def plot_pie(df, col1, col2):
+    # 두 범주형 변수의 조합별 개수 파이차트로 시각화
     df_ = df.groupby([col1, col2])[col1].count().reset_index(name='counts')
     df_[col1+","+col2] = df_[col1].astype(str) + ',' + df_[col2].astype(str) 
     fig = px.pie(df_, values='counts', names=col1+","+col2, title=col1+' | '+col2)
@@ -83,6 +90,7 @@ plot_pie(df_train, "product_type", "is_business")
 
 plot_pie(df_train, "product_type", "is_consumption")
 
+# 주어진 두 범주형 변수의 조합 수를 카운트하고, 분포(히스토그램) 시각화
 def plot_dist(df, col1, col2, color):    
     df_ = df.groupby([col1, col2])[col1].count().reset_index(name='counts')
     plt.figure(figsize=(5,5))
@@ -112,6 +120,7 @@ for i, column in enumerate(desc_columns):
 
 _ = fig.tight_layout()
 
+# 소비/생산 여부별 시간에 따른 평균 타겟값 계산
 train_avgd = (
     df_train
     .groupby(['datetime','is_consumption'])
@@ -132,6 +141,7 @@ fig,ax = plt.subplots(1,1,figsize=(6,4))
 train_avgd.groupby(train_avgd.index.hour).mean().plot(ax=ax, marker='.')
 _ = ax.set_xlabel('Hour')
 
+# 가스 가격 시계열 데이터 로딩 및 전처리 후 시각화
 df_gas = pd.read_csv("/kaggle/input/predict-energy-behavior-of-prosumers/gas_prices.csv")
 df_gas.drop(["origin_date"], inplace=True, axis=1)
 df_gas["forecast_date"] = pd.to_datetime(df_gas["forecast_date"])
@@ -141,6 +151,7 @@ daily_gas = df_gas.groupby(pd.Grouper(key="forecast_date", freq='D')).mean()
 mean_gas_low = df_gas.lowest_price_per_mwh.mean()
 mean_gas_high = df_gas.highest_price_per_mwh.mean()
 
+# 두 개의 시계열 변수를 한 그래프에 area chart로 시각화하고 평균선도 함께 표시
 def plot_two(df, 
              mean1, mean2, 
              color1, color2, 
@@ -182,6 +193,7 @@ plot_two(weekly_gas,
          "Euros/MWh",
          "lowest_price_per_mwh", "highest_price_per_mwh")
 
+# 기상 데이터 로딩 및 시계열로 평균값 산출 후 다양한 항목 시각화
 df_historical = pd.read_csv("/kaggle/input/predict-energy-behavior-of-prosumers/historical_weather.csv")
 df_historical["datetime"] = pd.to_datetime(df_historical["datetime"])
 monthly_historical = df_historical.groupby(pd.Grouper(key="datetime", freq='M')).mean()
@@ -267,6 +279,7 @@ print(len(df_historical) - len(df_historical.drop_duplicates()))
 location = df_historical[df_historical.duplicated()][["latitude", "longitude"]]
 location.drop_duplicates()
 
+# 고유 위경도 위치를 지도에 마킹하여 시각화
 import folium
 fmap = folium.Map((58.5, 25), zoom_start=7)
 fmap.add_child(folium.LatLngPopup())
@@ -276,6 +289,7 @@ for i, (lat, lon) in df_historical[['latitude', 'longitude']].drop_duplicates().
     marker.add_to(fmap)
 fmap
 
+# 이슬점보다 기온이 낮거나 같은 시간대를 계산 (안개/이슬 형성 가능성)
 sum_list = []
 sum_list2 = []
 for i, (latitude, longitude) in df_historical[['latitude', 'longitude']].drop_duplicates().iterrows():
@@ -295,6 +309,7 @@ print()
 for i in range(0, len(sum_list), width):
     print(sum_list2[i:i+width])
 
+# 주어진 기상 변수(col)를 시간 기준으로 시각화
 def plot_historical_column(location, col):
     plt.figure(figsize=(10, 4))
     plt.plot(location.groupby('datetime')[[col]].mean(), label='hourly')
@@ -364,6 +379,7 @@ df_train_prediction_unit_id = df_train[["product_type", "county", "is_business"]
 df_client_prediction_unit_id = df_client[["product_type", "county", "is_business"]].drop_duplicates()
 display(df_train_prediction_unit_id, df_client_prediction_unit_id)
 
+# 학습 데이터에서 예측 단위 조합별 고유 prediction_unit_id 추출
 df_train_prediction_unit_id = df_train[["product_type", "county", "is_business", "prediction_unit_id"]].drop_duplicates()
 display(df_train_prediction_unit_id)
 
@@ -489,6 +505,7 @@ print('temperature <= dewpoint + 1')
 for i in range(0, len(sum_list), width):
     print(sum_list2[i:i+width])
 
+# 주어진 기상 변수(col)를 시간 기준으로 시각화 (예보 데이터)
 def plot_forecast_column(location, col):
     plt.figure(figsize=(10, 4))
     plt.plot(location.groupby('forecast_datetime')[[col]].mean(), label="hourly")
@@ -498,6 +515,8 @@ def plot_forecast_column(location, col):
     plt.legend()
     plt.show()
 
+#
+# 고유 좌표쌍을 순회하기 위한 generator 정의 (예보 데이터 기준)
 df_forecast_gen = df_forecast[["latitude", "longitude"]].drop_duplicates().iterrows()
 
 i, (latitude, longitude) = next(df_forecast_gen)
@@ -545,6 +564,7 @@ plot_forecast_column(location, "snowfall")
 plot_forecast_column(location, "total_precipitation")
 
 import json
+# county ID를 사람이 읽을 수 있는 이름으로 매핑하기 위한 json 파일 로드
 with open('/kaggle/input/predict-energy-behavior-of-prosumers/county_id_to_name_map.json', 'r') as f:
     json_data = json.load(f)
 county_id_to_name_map = eval(json.dumps(json_data))
@@ -559,6 +579,7 @@ def print_color(text:str, color = Fore.BLUE, style = Style.BRIGHT):
     '''Prints color outputs using colorama of a text string'''
     print(style + color + text + Style.RESET_ALL); 
     
+# 데이터프레임의 크기 및 첫 번째 행 출력 유틸 함수
 def display_df(df, name):
     '''Display df shape and first row '''
     print_color(text = f'{name} data has {df.shape[0]} rows and {df.shape[1]} columns. \n ===> First row:')
